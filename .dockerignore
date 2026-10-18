@@ -1,0 +1,25 @@
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Git files
+.git
+.gitignore
+
+# Python development files
+**/.venv/
+**/venv/
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+**/.pytest_cache/
+
+# Frontend dependencies and local build output
+web/node_modules/
+web/dist/
+
+# Local logs and coverage
+*.log
+htmlcov/
+.coverage
