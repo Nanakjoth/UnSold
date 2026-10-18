@@ -1,0 +1,54 @@
+# Cloud Build pipeline for Atlas (Ask): build the multi-stage Docker image
+# (SPA + API), push to Artifact Registry, deploy to Cloud Run.
+# Step-by-step operator runbook: docs/DEPLOY.md.
+#
+# Model IDs are deliberately NOT defaulted here: pass them at submit time,
+# after verifying current stable Gemini model IDs and regional availability
+# in the official Gemini on Vertex AI documentation.
+#
+#   gcloud builds submit --config cloudbuild.yaml . \
+#     --substitutions=_GEMINI_MODEL=<fast-model-id>,_EMBED_MODEL=<embed-model-id>,_EMBED_DIM=<dim>
+
+steps:
+  # 1. Build the image (stage 1 compiles the SPA, stage 2 packages API + static).
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/atlas:$COMMIT_SHA'
+      - '.'
+
+  # 2. Push the tagged image to Artifact Registry.
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/atlas:$COMMIT_SHA'
+
+  # 3. Deploy to Cloud Run. No key files: the runtime service account is the
+  #    identity for Firestore, Vertex AI and Logging (least privilege, see docs/DEPLOY.md).
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'atlas'
+      - '--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/atlas:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--service-account=atlas-run@${_PROJECT}.iam.gserviceaccount.com'
+      - '--set-env-vars=APP_MODE=${_APP_MODE},GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=${_REGION},GEMINI_MODEL=${_GEMINI_MODEL},GEMINI_MODEL_STRONG=${_GEMINI_MODEL_STRONG},EMBED_MODEL=${_EMBED_MODEL},EMBED_DIM=${_EMBED_DIM}'
+      - '--allow-unauthenticated'
+      - '--min-instances=0'
+      - '--no-traffic'
+    # ^ First deploy runs with no traffic: promote a revision after verifying
+    #   (docs/DEPLOY.md §5). Remove --no-traffic once verification passes.
+
+# No defaults for the three model-related substitutions on purpose: submit
+# fails with a clear error unless the operator supplies verified values.
+substitutions:
+  _REGION: us-central1
+  _REPO: atlas
+  _APP_MODE: production
+  _GEMINI_MODEL_STRONG: ''
+
+options:
+  logging: CLOUD_LOGGING_ONLY

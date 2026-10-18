@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   Atlas design tokens — dark-first (ui_redesign_spec.md section 12).
+   The token NAMES are unchanged from the original light theme, so every
+   existing utility keeps working; only the values flip with the theme. The
+   light palette is the previous design, restored under html[data-theme=light].
+--------------------------------------------------------------------------- */
+
+@theme {
+  /* Dark (default) palette */
+  --color-paper: #0b1113; /* canvas */
+  --color-paper-deep: #0e1619; /* recessed canvas */
+  --color-card: #121b1f; /* card surface */
+  --color-ink: #eaf1f2; /* primary text */
+  --color-ink-soft: #9fb1b4; /* muted text */
+  --color-line: #22313a; /* card border */
+  --color-line-strong: #2e424c; /* input border */
+  --color-accent: #34d399; /* mint — primary action + Guardian */
+  --color-accent-strong: #6ee7b7; /* hover */
+  --color-accent-soft: rgba(52, 211, 153, 0.14);
+  --color-accent-glow: rgba(52, 211, 153, 0.22);
+  --color-accent-2: #4da3ff; /* secondary accent — links, "you" node */
+  --color-warm: #d9a05b; /* attention, non-danger */
+  --color-warm-soft: rgba(217, 160, 91, 0.14);
+  --color-clay: #f09276; /* danger / blocked */
+  --color-clay-soft: rgba(240, 146, 118, 0.14);
+  --color-glass: rgba(255, 255, 255, 0.06); /* floating glass */
+  --color-glass-line: rgba(255, 255, 255, 0.12);
+
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
+}
+
+/* Light theme: the previous palette, opt-in via the toggle. */
+html[data-theme="light"] {
+  --color-paper: #f4f5f1;
+  --color-paper-deep: #eceee7;
+  --color-card: #ffffff;
+  --color-ink: #132029;
+  --color-ink-soft: #4c5c6a;
+  --color-line: #e0e4dc;
+  --color-line-strong: #cdd4c8;
+  --color-accent: #0f6b52;
+  --color-accent-strong: #0a4d3b;
+  --color-accent-soft: #e3f0ea;
+  --color-accent-glow: rgba(53, 163, 127, 0.16);
+  --color-accent-2: #1d6fe0; /* darker blue so it stays visible on light */
+  --color-warm: #8a5a2b;
+  --color-warm-soft: #f8efe2;
+  --color-clay: #b4552f;
+  --color-clay-soft: #fbeae2;
+  --color-glass: rgba(255, 255, 255, 0.72);
+  --color-glass-line: rgba(19, 32, 41, 0.1);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Anchor targets clear the sticky header. */
+section[id] {
+  scroll-margin-top: 5.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.6;
+}
+
+/* Mint focus ring on everything interactive (spec: 3px halo). */
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-accent-glow);
+  border-radius: 6px;
+}
+
+/* Primary button: mint with readable text in BOTH themes. In dark mode the
+   accent is bright mint, so white text would fail contrast — flip it to dark
+   ink. In light mode the accent is deep green and white stays. */
+html[data-theme="dark"] .bg-accent.text-white,
+html[data-theme="dark"] .bg-accent.text-white * {
+  color: #052e22;
+}
+
+@layer components {
+  /* Display headings (hero, section titles). */
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  /* Floating glass panel — blur is cheap and additive; the rgba fill is the
+     real surface, so it degrades gracefully where backdrop-filter is absent. */
+  .glass {
+    background: var(--color-glass);
+    border: 1px solid var(--color-glass-line);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  /* 1px gradient edge (spec UI-4: no heavy drop shadows). */
+  .grad-edge {
+    position: relative;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--color-card), var(--color-card)) padding-box,
+      linear-gradient(160deg, rgba(52, 211, 153, 0.45), rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0)) border-box;
+  }
+  html[data-theme="light"] .grad-edge {
+    background:
+      linear-gradient(var(--color-card), var(--color-card)) padding-box,
+      linear-gradient(160deg, rgba(15, 107, 82, 0.35), rgba(19, 32, 41, 0.08) 40%, rgba(19, 32, 41, 0)) border-box;
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 14px;
+    background: var(--color-accent);
+    padding: 0.85rem 1.6rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #052e22;
+    transition:
+      transform 0.15s ease,
+      filter 0.15s ease;
+  }
+  html[data-theme="light"] .btn-primary {
+    color: #ffffff;
+  }
+  .btn-primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+  }
+  .btn-primary:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+    transform: none;
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 14px;
+    border: 1px solid var(--color-line-strong);
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--color-ink);
+    transition:
+      border-color 0.15s ease,
+      color 0.15s ease;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .btn-ghost:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+}
+
+/* --- Ambient hero visuals (spec UI-1: static constellation, slow halo) ----- */
+
+.halo {
+  background: radial-gradient(closest-side, var(--color-accent-glow), transparent 70%);
+  filter: blur(28px);
+}
+
+/* Ambient wash behind the hero / placeholder pages (kept for InProgress and
+   any legacy use) — theme-aware, so it reads on both palettes. */
+.hero-wash {
+  background:
+    radial-gradient(52rem 28rem at 82% -6%, var(--color-accent-glow), transparent 62%),
+    radial-gradient(40rem 24rem at 6% 8%, var(--color-warm-soft), transparent 60%),
+    linear-gradient(180deg, var(--color-paper) 0%, var(--color-paper-deep) 100%);
+}
+
+/* Legibility veil between NeuralBackdrop and the hero text: page colour at
+   ~55% behind the text area, fading to fully clear canvas by the bottom. */
+.hero-fade {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-paper) 55%, transparent) 0%,
+    color-mix(in srgb, var(--color-paper) 38%, transparent) 52%,
+    transparent 100%
+  );
+}
+
+.dot-texture {
+  background-image: radial-gradient(rgba(234, 241, 242, 0.07) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+html[data-theme="light"] .dot-texture {
+  background-image: radial-gradient(rgba(19, 32, 41, 0.07) 1px, transparent 1px);
+}
+
+.card-raised {
+  box-shadow: 0 18px 50px -30px rgba(0, 0, 0, 0.9);
+}
+html[data-theme="light"] .card-raised {
+  box-shadow:
+    0 1px 2px rgba(19, 32, 41, 0.04),
+    0 12px 32px -18px rgba(19, 32, 41, 0.28);
+}
+
+/* --- Motion (all of it gated by prefers-reduced-motion) -------------------- */
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes halo-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(18px, -12px, 0) scale(1.06);
+  }
+}
+
+@keyframes node-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes guardian-flash {
+  0% {
+    box-shadow: 0 0 0 0 var(--color-accent-glow);
+  }
+  100% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+.float-in {
+  animation: float-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.float-in-delay-1 {
+  animation-delay: 0.12s;
+}
+.float-in-delay-2 {
+  animation-delay: 0.24s;
+}
+.float-in-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.halo-drift {
+  animation: halo-drift 18s ease-in-out infinite alternate;
+}
+
+.node-pulse {
+  animation: node-pulse 3.4s ease-in-out infinite;
+}
+
+.guardian-flash {
+  animation: guardian-flash 0.7s ease-out 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .float-in,
+  .halo-drift,
+  .node-pulse,
+  .guardian-flash {
+    animation: none !important;
+  }
+  .float-in {
+    opacity: 1;
+  }
+}

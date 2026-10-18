@@ -1,0 +1,17 @@
+# Patterns ignored when building from source with `gcloud run deploy --source .`
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/node_modules
+web/dist
+.vscode
+.idea
+*.md
+!README.md

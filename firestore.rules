@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Deny-by-default client rules (spec sections 5 and 8).
+//
+// The prototype has NO client-side Firestore access: the React app talks only
+// to the FastAPI service, which uses the Admin SDK (IAM/ADC) and performs its
+// own authorization on every request. These rules make direct client reads and
+// writes impossible until a specific, tested client use-case is designed.
+//
+// If direct client access is ever added, each allow rule must name the exact
+// fields a client may read or write — never a whole document with private
+// mentor fields or reveal data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
