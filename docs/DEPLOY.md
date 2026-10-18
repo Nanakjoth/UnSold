@@ -72,7 +72,7 @@ Runtime service account, least privilege (no Owner/Editor):
 
 ```bash
 gcloud iam service-accounts create atlas-run \
-  --display-name="Atlas runtime" --project "$GOOGLE_CLOUD_PROJECT"
+  --display-name="UNSOLD runtime" --project "$GOOGLE_CLOUD_PROJECT"
 
 for ROLE in roles/datastore.user roles/aiplatform.user roles/logging.logWriter; do
   gcloud projects add-iam-policy-binding "$GOOGLE_CLOUD_PROJECT" \

@@ -1,4 +1,6 @@
-# Atlas — The Project Explained
+# UNSOLD — The Project Explained
+
+(Repo/package codename: `atlas`.)
 
 > A plain-language, deep-dive walkthrough of what this project is, how it is
 > built, and how it actually works. Read this first if you want the whole
@@ -18,16 +20,16 @@
 
 ---
 
-## 1. What Atlas Is
+## 1. What UNSOLD Is
 
-**Atlas gives independent, pitch-free guidance to a person working through a
-decision** — anonymously, for free, with no one trying to sell them a course,
-clinic, or coaching package.
+**UNSOLD gives independent, agenda-free guidance to a person working through a
+decision** — anonymously, for free, from people with nothing to sell: no course,
+clinic, or coaching package. *Anonymous human guidance, protected by AI.*
 
 The core idea comes straight from a real problem: when you face a decision (a
 job offer, a career change, burnout, a risky purchase), you may not have a
 trusted person to ask. Advice is either hard to access, or the person giving it
-has something to sell. Atlas exists to make honest guidance easier to get and to
+has something to sell. UNSOLD exists to make honest guidance easier to get and to
 make promotion easy to spot.
 
 ### The one-sentence journey
@@ -37,9 +39,9 @@ make promotion easy to spot.
 > with a written reason they fit → you talk to one in a moderated session → you
 > leave with an editable summary and next steps.
 
-### What Atlas deliberately is **not**
+### What UNSOLD deliberately is **not**
 
-This is as important as what it is. Atlas is **not**:
+This is as important as what it is. UNSOLD is **not**:
 
 - **Not a marketplace.** No payments, subscriptions, paid mentorship, ads,
   affiliate links, or commercial rankings.
@@ -57,7 +59,7 @@ This is as important as what it is. Atlas is **not**:
 
 ## 2. The Two Products In One
 
-A key thing to understand about the current shape: Atlas is really **two things,
+A key thing to understand about the current shape: UNSOLD is really **two things,
 deliberately layered**, and the ordering matters.
 
 ```
@@ -477,7 +479,7 @@ code categories — **never message text**.
 
 ```
 web/src/
-├─ App.tsx                     routes — "/" is ASK (the front door); /trust added
+├─ App.tsx                     routes — "/" is UNSOLD (the front door); /trust added
 ├─ theme.tsx                   ThemeProvider — dark-first, persisted, light option
 ├─ index.css                   design tokens (@theme), glass/grad-edge/btn classes,
 │                              all motion gated by prefers-reduced-motion
@@ -496,7 +498,9 @@ web/src/
 │  ├─ AdviceResults.tsx        interpretation panel + match cards (fit badges, chips)
 │  ├─ GuardianPlayground.tsx   POST /api/guardian/try UI — redaction animation,
 │  │                           aria-live verdict, honest source label
-│  ├─ Constellation.tsx        static hero SVG (You · Guardian · Mentor), CSS-only
+│  ├─ NeuralBackdrop.tsx       slowly-rotating 3D canvas network behind the
+│  │                           hero (seeded, decorative only, reduced-motion
+│  │                           static frame); Phase-2 `flash` prop implemented
 │  ├─ ProvenanceChip.tsx       honest source chip on every AI-assisted result
 │  ├─ home/Sections.tsx        HowItWorks, FriendTestMeter, TransparencyPanel,
 │  │                           ExploreTeaser, MentorInvite
@@ -505,6 +509,8 @@ web/src/
 │  │                           works · Trust), identity chip, theme toggle,
 │  │                           prototype ribbon, mobile bottom tabs, footer
 │  └─ DemoBanner.tsx           demo-mode honesty banner
+├─ lib/                        neuralGraph.ts: pure seeded graph/3D-projection
+│                              maths for NeuralBackdrop (no DOM, deterministic)
 ├─ services/                   api.ts (fetch + token), advice.ts (incl. guardianTry,
 │                              getPublicStats), sessions.ts, auth.ts, catalogue.ts
 ├─ hooks/                      useSession (auth context), useConfig
@@ -578,9 +584,11 @@ cd server
 > while a smoke script against 8081 still passes. Free the port or point the
 > proxy (`web/vite.config.ts`) at whichever port you actually run.
 
-Open **http://localhost:5173** — you land on the advice front door. Cloud deploy
-(Cloud Run, real Gemini, Firestore, Firebase) is documented as operator steps in
-`README.md`; it needs credentials this machine doesn't have.
+Open **http://localhost:5173** — you land on the UNSOLD front door. Cloud deploy
+(Cloud Run, Firestore, service identity) is documented as operator steps in
+`docs/DEPLOY.md` (summary in `README.md`). LLM configuration is its own
+checklist in `docs/CONFIGURE_AI.md`. Note: live Gemini is verified on this
+machine (2026-10-18); the Cloud Run deployment itself is still unexecuted.
 
 ---
 

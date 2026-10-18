@@ -4,6 +4,36 @@ Decisions made without asking clarifying questions, per build spec §0. Each
 entry: what was decided, why, and when it can be revisited. This file replaces
 the root `ASSUMPTIONS.md`, whose history is preserved below.
 
+## 2026-10-18 — Documentation sweep: brand + live-Gemini state applied everywhere
+
+Follow-up to the rebrand and the live-Gemini milestone: a repo-wide grep for
+stale references (`Atlas`/`Ask` as product name, `Constellation.tsx`,
+"Live Gemini has never run", "not yet written", "Global Discovery Platform")
+and a full sync of every *living* doc:
+
+- **PROJECT_EXPLAINED.md**: heading + §1 rewritten for UNSOLD (incl. the
+  "agenda-free / nothing to sell / protected by AI" framing); frontend tree
+  updated — deleted `Constellation.tsx` entry replaced with
+  `NeuralBackdrop.tsx`, new `lib/neuralGraph.ts` row added; `/` described as
+  UNSOLD; the deploy paragraph corrected (was "credentials this machine
+  doesn't have" — now points to `docs/DEPLOY.md` + `docs/CONFIGURE_AI.md` and
+  notes live Gemini is verified here).
+- **PRIVACY_AND_SAFETY.md**: record is "for UNSOLD (repo codename: Atlas)".
+- **DEPLOY.md**: runtime service account display name → "UNSOLD runtime"
+  (the `atlas-run` *ID* stays — cloudbuild.yaml references it and IDs are
+  operator-facing only).
+- **.env.example**: header comment rebranded; the "Global Discovery Platform"
+  descriptor dropped (that product was superseded by the pivot).
+- **Deliberately NOT changed:** append-only DECISIONS.md history entries;
+  PRODUCT_SPEC.md (already carries a "SUPERSEDED — historical record"
+  banner; it documents the frozen discovery add-on's integrity rules);
+  README's prose "advice front door" (a description, not the brand name);
+  root spec files `CORE_REALIGNMENT.md` / `unsold_product_spec.md` (specs of
+  record); older screenshots in docs/screenshots (historical captures — the
+  current brand is `unsold-home.png`).
+
+
+
 ## 2026-10-18 — Rebrand: the product is UNSOLD
 
 Operator directive: the product's name, brand, and tagline are set — applied
@@ -84,7 +114,7 @@ Implemented the canvas network background per the brief, with these calls:
   reduced-motion static frame, real hero), zero console errors, tsc/vite
   build clean. Real-device frame timings honestly **not measured**.
 
-
+## 2026-10-18 — Deployment packaging: cloudbuild.yaml + docs/DEPLOY.md runbook
 
 Asked to get the project deployable so the operator (who owns all Google Cloud
 access) can configure the real Gemini path. What was decided without asking:

@@ -26,4 +26,7 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-.env
+# Temporary tool artifacts (headless-browser screenshot profiles, local QA harnesses)
+.edge-qa-*
+qa.html
+web/qa.html

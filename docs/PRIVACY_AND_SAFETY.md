@@ -1,6 +1,7 @@
 # Privacy & Safety
 
-This document is the operative privacy and safety record for Atlas. It tracks
+This document is the operative privacy and safety record for UNSOLD (repo
+codename: Atlas). It tracks
 what the product *actually does today*; anything not listed here does not exist
 yet and is not implied anywhere in the UI.
 

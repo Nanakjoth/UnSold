@@ -1,280 +1,543 @@
-# UNSOLD — advice without an agenda
+# UNSOLD
 
-**UNSOLD** gives a person working through a decision **independent, agenda-free
-guidance** — anonymously, for free, from people with nothing to sell them a
-course, clinic, or coaching package. *Anonymous human guidance, protected by
-AI.* Advice is the core product; a discovery catalogue is a frozen add-on.
-(`atlas` remains the repo/package codename.)
+### Advice without an agenda.
+**Advice from people with nothing to sell. Anonymous human guidance, protected by AI.**
 
-> **Status:** the advice core is built and verified. That is Stages **A1**
-> (describe a need → scrub → interpret → grounded mentor matches → front-door
-> UI), **A2** (in-app session + the **Guardian** anti-promotion layer + the
-> Friend Test), **A3** (mutual-consent identity reveal + editable summary with
-> next steps + dual-role feedback with a Guardian agreement metric), and **P3**
-> (an honest evaluation harness: an 80-message gold set + eval runner). Demo
-> seed data — 35 synthetic mentors and 10 sample mentee situations — is in
-> place. Cloud features (live Gemini, Firestore, Firebase auth) are **prepared
-> but never run live** — no credentials on this machine, and the app says so
-> honestly rather than faking a model call. See `docs/PROJECT_EXPLAINED.md`
-> §15 for the exact roadmap.
+UNSOLD helps people think through difficult decisions without turning their uncertainty into a sales opportunity. A person describes a situation, sees how the system understood it, compares relevant mentor profiles, and can take a conversation into a moderated session. The Guardian looks for promotion and attempts to move the conversation off-platform; after a session, the user can keep an editable summary and concrete next steps.
 
-This repository is the application itself. It is not a competition entry.
+The core promise is simple: **make independent guidance easier to access—and make hidden commercial pressure easier to spot.**
 
-## What the product does (and does not do)
+> **Prototype status (18 October 2026):** the local Gemini structured-call check succeeded, and the live Guardian path was verified locally. The product has a tested demo experience with synthetic mentors and simulated mentor replies. The Cloud Run deployment has not yet been verified end to end. See [Current status and limitations](#current-status-and-limitations) before interpreting any feature as production-ready.
 
-- **Describe a situation, get grounded matches.** You write what you're facing
-  in plain words. The text is scrubbed of PII, interpreted into an editable
-  intent, and matched against up to three mentors — each with a written reason
-  they fit, built only from that mentor's public card and your own intent.
-- **Talk in a moderated session.** Every message runs through the **Guardian**,
-  which blocks promotion, contact-solicitation, urgency/fear, and affiliate
-  wording. A mentor gets three strikes and the session ends. For money
-  decisions, the Friend Test tracks whether the mentor pushed you to spend.
-- **Leave with something concrete.** After a session you get an editable
-  summary with up to five next steps, plus 2–3 small things to try from the
-  catalogue. You can request a mutual-consent identity reveal (anonymously
-  pseudonymous until both sides agree).
-- **Anonymity is the default.** No email, no password, ever. Identity is a
-  server-generated pseudonym; the uid comes only from a verified token.
-- **It is not** therapy, medical, legal, or financial advice; not a marketplace
-  (no payments, ads, or affiliate links); not a dating or popularity product;
-  and not an AI chatbot that pretends to be a person. Every AI-assisted result
-  carries the *real* source — `"gemini"` only if a live model produced it,
-  `"fallback"`/`keyword"` otherwise.
+---
 
-## Repository layout
+## The problem
 
-```
-server/    FastAPI app (Python 3.12) — advice core, sessions + Guardian,
-           discovery add-on, matching, evaluation harness. Tests in server/tests
-web/       React 19 + Vite 6 + TypeScript + Tailwind v4 frontend
-scripts/   cross-cutting live smoke scripts (a2/a3/eval/scenarios) + eval + checks
-server/scripts/  advice/discovery smoke scripts + catalogue + status-code validators
-eval/      gold_set.jsonl (80 messages) + last_run.json (last eval result)
-docs/      PROJECT_EXPLAINED, ARCHITECTURE, DECISIONS, PRIVACY_AND_SAFETY,
-           AI_EVALUATION, PRODUCT_SPEC
-```
+A job offer, career change, workplace conflict, startup decision, or expensive training choice can be hard to navigate alone. Useful advice may be inaccessible, while the people or services offering advice can also have something to sell.
 
-## Running locally
+That creates three problems:
 
-Prerequisites: Python 3.12, Node 20+, npm. No Google Cloud credentials are
-required for demo mode.
+1. **Access:** not everyone can afford coaching or has a trusted, experienced person to ask.
+2. **Conflicts of interest:** advice can quietly become promotion for a course, clinic, coaching package, product, or referral.
+3. **Trust:** users may not know why a recommendation was made, what information is exposed, or whether a warning system is actually working.
 
-### Backend
+UNSOLD approaches this as a product-design problem—not simply a chatbot prompt. It combines pseudonymous interactions, explainable matching, a dedicated anti-promotion Guardian, deterministic enforcement rules, and an explicit record of what the system did.
 
-```powershell
-# Windows PowerShell
-cd server
-py -3.12 -m venv .venv
-.venv\Scripts\pip install -r requirements.txt
-.venv\Scripts\uvicorn app.main:app --reload --port 8080
-```
+## The solution
+
+UNSOLD is a free, pseudonymous guidance experience built around five product principles:
+
+- **People before prompts.** AI helps structure a problem and find relevant people; it does not pretend to be the mentor.
+- **No commercial marketplace.** There are no paid mentor rankings, ads, affiliate links, or paid guidance in the product design.
+- **Explainable matches.** A match includes a reason grounded in the mentor's public profile. The system can say that no strong match was found instead of manufacturing confidence.
+- **A Guardian with enforceable rules.** Gemini may classify a message, but deterministic application code selects the final action.
+- **Honest AI provenance.** A result is labelled `gemini`, `fallback`, `keyword`, or `rules` according to the path that actually produced it.
+
+### The user journey
+
+1. **Describe a situation.** The user explains what they are working through and can indicate whether money is involved.
+2. **Scrub identifying details.** The backend applies deterministic PII scrubbing before storing free text or passing it to a model.
+3. **Review the interpretation.** The system structures the need into a summary, goal, domain, risk signals, language, and preferred mentor traits. The user can inspect the interpretation rather than silently accept a guess.
+4. **Compare up to three matches.** The system ranks mentor profiles using transparent fit signals and provides grounded explanations, watch-outs, and starter questions.
+5. **Talk with the Guardian in the loop.** Session messages are scrubbed and screened. Promotional content may be allowed, warned on, or blocked and redacted according to a code-owned policy.
+6. **Leave with something actionable.** The session flow supports mutual-consent reveal, an editable summary, next steps, feedback, and the Friend Test for decisions involving spending.
+
+The current prototype uses **synthetic mentors and simulated mentor replies**, clearly labelled in the interface. This lets reviewers test the full product flow without mistaking demo personas for real people.
+
+## What makes UNSOLD different
+
+| Design choice | Why it matters |
+|---|---|
+| Pitch-free Guardian | Looks for direct promotion, contact solicitation, urgency/fear, soft steering, and affiliate/referral behaviour. |
+| Deterministic enforcement | Model output does not directly decide whether a message is allowed, warned on, or redacted. |
+| Friend Test | For money-related decisions, surfaces whether the mentor cautioned against spending, stayed neutral, or pushed spending. |
+| Explainable mentor fit | Uses public-card facts and the user's interpreted need; does not invent employers, history, credentials, or contact details. |
+| Mutual-consent reveal | Contact information is not exposed just because one side asks to reveal. Both sides must consent in the designed state machine. |
+| Honest fallback behaviour | If Gemini is not configured or a call fails, deterministic behaviour remains available and the result is labelled honestly. |
+| Privacy-aware defaults | User-written free text is scrubbed before persistence and model calls; logs contain event metadata, not message content. |
+
+## Product tour
+
+The most useful way to experience the prototype is to follow one complete scenario:
+
+1. Open the UNSOLD home page and choose a sample situation.
+2. Review the interpretation and the top mentor matches. Check the explanation and any cross-domain caveats.
+3. Start a session and submit ordinary advice plus an intentionally promotional test message.
+4. Observe the Guardian decision, warning/redaction, and Friend Test where relevant.
+5. End the session, inspect and edit the summary, and submit feedback.
+6. Open **Trust** to test the Guardian playground and inspect its actual source label and the evaluation caveats.
+7. Open **Explore** to see the supporting catalogue of activities and the explicit relationships between them.
+
+The mentor corpus contains **35 synthetic mentor cards** and **10 synthetic sample situations**. The supporting Explore catalogue has **88 sample entries** and **151 explicit relationship records**. These are prototype assets, not evidence of a live volunteer network or real user outcomes.
+
+---
+
+## Run UNSOLD locally
+
+### Prerequisites
+
+- Python **3.12**
+- Node.js 22 (the deployment Dockerfile uses `node:22-slim`)
+- npm
+- Git
+- Optional, for live Gemini: Google Cloud CLI, an enabled Google Cloud project with billing configured, and Application Default Credentials (ADC)
+
+The backend and frontend can run locally. Google Cloud credentials are **not** required for the deterministic demo path; real Gemini calls need the project configuration described below.
+
+### 1. Clone and open the repository
 
 ```bash
-# macOS / Linux
-cd server
-python3.12 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-.venv/bin/uvicorn app.main:app --reload --port 8080
+git clone https://github.com/Nanakjoth/UnSold.git
+cd UnSold
 ```
 
-Demo mode seeds the 88-entry catalogue **and** the 35-mentor corpus
-automatically on first boot when the store is empty. The frontend dev server
-proxies `/api` and `/healthz` to port 8080, so run the backend there unless you
-change the proxy.
+If you already have the repository, open a terminal at its root—the directory containing `server/`, `web/`, `scripts/`, `.env.example`, and `cloudbuild.yaml`.
 
-> **`.env` is read from the directory you start the server in.** With a live
-> Gemini configuration in the repo-root `.env`, start the backend **from the
-> repo root** instead: `server\.venv\Scripts\uvicorn app.main:app --app-dir server --port 8080`
-> (Windows) / `server/.venv/bin/uvicorn app.main:app --app-dir server --port 8080`
-> (mac/linux). Started from `server/`, the app runs on built-in defaults
-> (fallback classifier, demo mode) and ignores the root `.env`.
+### 2. Create the Python environment
 
-### Frontend (second terminal)
+**Windows PowerShell** (run from the repository root):
 
 ```powershell
+py -3.12 -m venv server\.venv
+.\server\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\server\.venv\Scripts\python.exe -m pip install -r .\server\requirements.txt
+```
+
+**macOS/Linux** (run from the repository root):
+
+```bash
+python3.12 -m venv server/.venv
+server/.venv/bin/python -m pip install --upgrade pip
+server/.venv/bin/python -m pip install -r server/requirements.txt
+```
+
+If the virtual environment already exists, reuse it rather than creating it again.
+
+### 3. Configure environment variables
+
+Create a local `.env` from the template. Do not replace an existing `.env` blindly, because it may already contain your local settings.
+
+**Windows PowerShell:**
+
+```powershell
+if (-not (Test-Path .env)) {
+    Copy-Item .env.example .env
+}
+notepad .env
+```
+
+**macOS/Linux:**
+
+```bash
+test -f .env || cp .env.example .env
+$EDITOR .env
+```
+
+For the local demo, keep `APP_MODE=demo`. To enable Gemini, configure the actual project and model settings in the root `.env`:
+
+```dotenv
+APP_MODE=demo
+GOOGLE_CLOUD_PROJECT=YOUR_GOOGLE_CLOUD_PROJECT_ID
+GOOGLE_CLOUD_LOCATION=global
+GEMINI_MODEL=gemini-3.5-flash-lite
+GEMINI_MODEL_STRONG=
+EMBED_MODEL=gemini-embedding-001
+EMBED_DIM=768
+FIRESTORE_DB=(default)
+```
+
+These model settings reflect the local configuration that was successfully used for a **structured Guardian call** on 18 October 2026. Confirm current model availability and dimension support for your own project and code before changing them. The embedding output dimension requested by the application must match any vector index using those embeddings.
+
+Keep `.env` private. **Never commit `.env`, access tokens, credentials, or service-account key files.** `.env.example` is the safe template for version control.
+
+### 4. Authenticate for real Gemini calls (optional)
+
+Install the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install), select your project, and authenticate:
+
+```powershell
+gcloud auth login
+gcloud config set project YOUR_GOOGLE_CLOUD_PROJECT_ID
+gcloud auth application-default login
+```
+
+For the current `.env` project, replace the placeholder with your actual project ID. Enable the Vertex AI API in that project and make sure your identity is permitted to call the selected model. Do not download or commit a service-account JSON key for local development.
+
+### 5. Verify Gemini before running the UI (optional, recommended)
+
+Run from the **repository root** so the application reads the root `.env`.
+
+**Windows PowerShell:**
+
+```powershell
+.\server\.venv\Scripts\python.exe .\scripts\check_gemini.py
+```
+
+**macOS/Linux:**
+
+```bash
+server/.venv/bin/python scripts/check_gemini.py
+```
+
+Success is reported as:
+
+```text
+RESULT: gemini
+```
+
+`RESULT: fallback` means the application safely used its fallback path; it is not a successful live-model test. The check makes one structured call through the Guardian prompt/schema path. A successful Guardian check does not, by itself, prove that every other AI-enabled feature is using Gemini in the running application.
+
+### 6. Start the backend
+
+**Important:** run this from the repository root. The root `.env` is resolved from the current working directory; starting from `server/` can cause the root configuration not to be loaded.
+
+**Windows PowerShell:**
+
+```powershell
+.\server\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir server --reload --port 8080
+```
+
+**macOS/Linux:**
+
+```bash
+server/.venv/bin/python -m uvicorn app.main:app --app-dir server --reload --port 8080
+```
+
+Keep this terminal open. Confirm the health endpoint responds:
+
+- `http://localhost:8080/healthz`
+
+Expected response:
+
+```json
+{"ok": true}
+```
+
+### 7. Start the frontend
+
+Open a **second terminal** at the repository root.
+
+```bash
 cd web
 npm install
-npm run dev        # http://localhost:5173, proxies /api and /healthz to :8080
+npm run dev
 ```
 
-Open **http://localhost:5173** — you land on the advice front door, where ten
-sample situations are one click away.
+Open **http://localhost:5173**. Vite proxies API calls to the backend on port `8080`.
 
-### Tests and checks
+If the page opens but API calls return unexpected 404 responses, check whether an old backend is already occupying port `8080`. Stop the stale process or update the dev proxy to target the correct backend.
+
+### 8. Run the tests
+
+**Backend tests — Windows PowerShell:**
 
 ```powershell
 cd server
-.venv\Scripts\python -m pytest                    # 206 passing
-.venv\Scripts\python scripts\validate_catalogue.py # catalogue integrity gate
-
-cd ../server   # live smoke, with the backend running on 8080
-..\scripts\smoke_a2.ps1      # session + Guardian + Friend Test end-to-end
-..\scripts\smoke_a3.ps1      # need → session → reveal → summary → feedback → metrics
-..\scripts\smoke_eval.ps1    # run the eval, confirm the Metrics page serves it
-..\scripts\smoke_scenarios.ps1  # the 10 sample scenarios each match their mentor #1
-
-cd ..\server
-.venv\Scripts\python ..\scripts\run_eval.py       # re-run the offline Guardian eval
-.venv\Scripts\python ..\scripts\check_scenarios.py # assert every scenario's #1 match
-.venv\Scripts\python ..\scripts\check_gemini.py    # honest Gemini-config check (exit 2 if unconfigured)
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-### Serving the built SPA from the API (single-service mode, as deployed)
+**Backend tests — macOS/Linux:**
+
+```bash
+cd server
+.venv/bin/python -m pytest
+```
+
+The project documentation records **206 passing backend tests** in its last documented test run. Re-run the suite in your current checkout and environment to confirm the current result.
+
+From the repository root, the Guardian evaluation runner is:
 
 ```powershell
-cd web; npm run build          # produces web/dist
-cd ../server; .venv\Scripts\uvicorn app.main:app --port 8080   # then open http://localhost:8080
+.\server\.venv\Scripts\python.exe .\scripts\run_eval.py
 ```
 
-### Seeding a real (non-demo) store
+The evaluation data and runner are described under [AI evaluation](#ai-evaluation-and-evidence).
 
-Seeding is never a side effect of booting the app. Run it explicitly:
+---
 
-```powershell
-cd server; .venv\Scripts\python -m app.seed
+## Architecture
+
+The prototype uses one repository with a React single-page application and a FastAPI backend. They can run separately during development and are designed to be packaged into one Cloud Run service for deployment.
+
+```mermaid
+flowchart TB
+    U[User in browser] --> FE[React 19 + TypeScript + Vite]
+    FE -->|HTTPS / API| API[FastAPI + Pydantic]
+    API --> AUTH[Token verification and ownership checks]
+    AUTH --> SCRUB[PII scrubbing and rate limits]
+    SCRUB --> MATCH[Need interpretation and mentor matching]
+    SCRUB --> GUARD[Guardian: rules + Gemini classifier]
+    MATCH --> STORE[Store interface]
+    GUARD --> POLICY[Deterministic action policy]
+    POLICY --> STORE
+    STORE --> MEM[In-memory store for demo/tests]
+    STORE --> FS[Firestore store for configured cloud use]
+    MATCH --> GEM[Gemini via google-genai / Vertex AI]
+    GUARD --> GEM
+    API --> LOG[Structured, content-free logs]
+    FE --> CAT[Explore catalogue UI]
 ```
 
-It is idempotent and prints the per-collection counts it wrote.
+### Core implementation decisions
 
-## Configuration
+- **Store abstraction:** advice, sessions, feedback, and catalogue operations use a common store interface, with an in-memory implementation for demo/tests and a Firestore implementation for configured cloud deployments.
+- **Gemini client seam:** model calls are centralized in `server/app/gemini.py`. Structured responses are parsed and validated against Pydantic schemas. The client reports the actual source and falls back deterministically when the model is unavailable or the response cannot be used.
+- **Scrub before model/storage:** free text passes through `server/app/scrub.py` before persistence and before any model call.
+- **Code owns enforcement:** the Guardian classifier supplies evidence such as category and severity; deterministic code maps severity to `ALLOW`, `WARN`, or `BLOCK_AND_REDACT`.
+- **Owner-scoped access:** protected endpoints derive user identity from a verified token, not from a caller-controlled user ID. The app API is the client’s data access boundary; the browser does not connect directly to Firestore.
+- **Content-free observability:** structured event logs record operational metadata and outcome categories, never prompts or message text.
 
-Configuration is environment-only, validated at startup
-(`server/app/config.py`). Copy `.env.example` to `.env` and edit. For a
-step-by-step personal checklist covering only the LLM/Gemini setup (project,
-APIs, auth, model IDs, one-call verification), see
-**`docs/CONFIGURE_AI.md`**. Highlights:
+### Technology stack
 
-| Variable | Meaning |
-|---|---|
-| `APP_MODE` | `demo` (local default) or `production`. Production refuses to start without complete Google Cloud configuration and never registers demo routes. |
-| `GOOGLE_CLOUD_PROJECT` / `GOOGLE_CLOUD_LOCATION` | Project and region for Google APIs. Required in production. |
-| `GEMINI_MODEL` / `EMBED_MODEL` / `EMBED_DIM` | Model names/dimension. Used only when a live Gemini client is configured. Placeholder values are rejected in production mode. Verify current model IDs and regional availability in official docs before use. |
-| `ENABLE_DLP` / `ENABLE_APP_CHECK` | Optional hardening gates, off by default. |
-| `DATA_RETENTION_DAYS`, `MAX_QUERY_CHARS`, `RATE_LIMIT_PER_MINUTE` | Product limits (defaults 30 days, 300 chars, 20/min). |
+| Layer | Technology | Responsibility |
+|---|---|---|
+| Frontend | React 19, TypeScript, Vite 6, Tailwind CSS v4, React Router | Responsive user experience |
+| Backend | Python 3.12, FastAPI, Pydantic v2 | API, schemas, orchestration, validation |
+| Generative AI | Google Gemini through `google-genai` in Vertex AI mode | Structured interpretation/classification and supported generation paths |
+| Matching | Transparent weighted fit scoring; optional Gemini re-ranking path | Grounded mentor recommendations |
+| Persistence | In-memory store; Firestore implementation for cloud configuration | Data access through a common interface |
+| Identity | HMAC-signed demo tokens; Firebase ID-token verification in production backend | Pseudonymous identity and API authorization |
+| Safety/privacy | Deterministic PII scrubber, Guardian rules, rate limiting | Reduce PII exposure and enforce safety policy |
+| Hosting (target) | Google Cloud Run | Serve API and built frontend from one deployment |
+| Observability | Structured JSON logs; Cloud Logging when deployed | Diagnose errors without recording user-authored content |
 
-No secrets live in this repository. Local development uses Application Default
-Credentials (`gcloud auth application-default login`) once Google APIs are
-used; Cloud Run uses its attached service identity. No service-account key
-files.
+### Repository map
 
-## API surface (current)
+```text
+.
+├── server/
+│   ├── app/
+│   │   ├── main.py                 # App setup, API registration, SPA serving
+│   │   ├── config.py               # Environment-based configuration
+│   │   ├── models.py               # Pydantic request/response models
+│   │   ├── store.py                # In-memory and Firestore store interface
+│   │   ├── auth.py                 # Demo/production token verification
+│   │   ├── scrub.py                # PII scrubbing
+│   │   ├── matching.py             # Need interpretation and matching
+│   │   ├── guardian.py              # Anti-promotion classifier and action policy
+│   │   ├── gemini.py                # Google Gen AI client and honest fallbacks
+│   │   ├── simulator.py             # Clearly labelled synthetic mentor replies
+│   │   ├── evaluation.py            # Guardian evaluation calculations
+│   │   ├── mentor_corpus.py         # Synthetic mentor corpus
+│   │   ├── sample_scenarios.py      # Synthetic example needs
+│   │   ├── catalogue.py             # Supporting discovery catalogue
+│   │   └── routes/                  # API endpoints by feature
+│   └── tests/                       # Backend tests
+├── web/
+│   └── src/
+│       ├── pages/                   # Advice, Sessions, Trust, Explore, Profile, etc.
+│       ├── components/              # Match cards, Guardian playground, app shell, etc.
+│       ├── services/                # Frontend API clients
+│       └── types/                   # TypeScript API contracts
+├── scripts/
+│   ├── check_gemini.py              # Real structured Gemini connectivity check
+│   ├── run_eval.py                 # Offline Guardian evaluation runner
+│   └── check_scenarios.py          # Sample match verification
+├── eval/
+│   ├── gold_set.jsonl               # 80-message labelled test corpus
+│   └── last_run.json                # Last saved offline evaluation output
+├── docs/
+│   ├── PROJECT_EXPLAINED.md
+│   ├── ARCHITECTURE.md
+│   ├── PRIVACY_AND_SAFETY.md
+│   ├── AI_EVALUATION.md
+│   ├── CONFIGURE_AI.md
+│   ├── DEPLOY.md
+│   └── DECISIONS.md
+├── .env.example
+├── Dockerfile
+└── cloudbuild.yaml
+```
 
-All `/api` routes require `Authorization: Bearer <token>` unless marked public.
-Errors return `{ "error": { "code", "message" } }`. The full route-by-route
-list is in `docs/PROJECT_EXPLAINED.md` §11 (35 routes). Grouped:
+File names in this map describe the documented repository layout; consult the actual checkout if it differs.
 
-- **Advice (core):** `POST /api/needs` (scrub → interpret → match → persist),
-  `GET /api/needs/scenarios` (public sample situations), `GET /api/mentors`,
-  `GET /api/mentors/{id}`.
-- **Sessions + Guardian:** open/list/get a session, send messages, the mentor
-  simulator's reply, end, Friend Test, reveal, summary (get/patch), feedback.
-- **Discovery (frozen add-on):** `GET /api/interests*`, `/api/library/saved*`,
-  `/api/library/feedback`.
-- **Public trust surfaces:** `POST /api/guardian/try` (anonymous Guardian
-  playground — stores/logs nothing, 10/min per IP) and `GET /api/public/stats`
-  (aggregates only; `accuracy_claimed` stays false until ≥30 labels are human-
-  reviewed).
-- **Account:** `POST/PATCH/DELETE /api/auth/session`, `GET /api/config`,
-  `GET /healthz`.
-- **Demo-only (`/api/dev/*`, never registered in production):** `demo-login`,
-  `reset`, `me`, mentor `impact`, Guardian + eval `metrics`.
+---
 
-## Authentication
+## AI design: intelligence with guardrails
 
-- **Production:** Firebase anonymous-auth ID tokens, verified server-side with
-  the Admin SDK (Application Default Credentials). Initialization is lazy, so
-  the app starts without credentials but refuses unverified requests.
-- **Demo (`APP_MODE=demo`):** the API mints short-lived HMAC-signed tokens via
-  `POST /api/dev/demo-login {"label": "a-name"}`. These run through the *same*
-  verification and ownership code paths as production — the uid is never taken
-  from a request body or query parameter.
+### 1. Need interpretation
 
-## Privacy and data handling
+The application converts a scrubbed free-text need into a structured intent, including a concise summary, goal type, relevant domains, language, money involvement, distress signals, and preferred mentor traits. Where a live Gemini path is enabled and succeeds, the result is labelled `gemini`; deterministic interpretation is labelled `fallback`.
 
-Full details in `docs/PRIVACY_AND_SAFETY.md`. Summary:
+The interpretation is inspectable so the user can correct a misunderstanding before relying on the matches.
 
-- Synthetic identities and labelled sample content throughout; a visible
-  banner shows this in demo mode.
-- **PII is scrubbed before storage and before any model call** (emails, phones,
-  URLs, handles, names → tokens). Raw PII never reaches the store or a prompt.
-- **Deletion deletes.** `DELETE /api/auth/session` removes the user record and
-  every record they own — needs, sessions, messages, feedback, saved interests,
-  discovery feedback — and returns exact per-collection counts.
-- **Retention:** `DATA_RETENTION_DAYS` (default 30) plus `retention.purge_expired`
-  for records stamped with `expires_at`.
-- **Rate limiting:** per-user (falling back to per-IP) sliding window, default
-  20/min, `429` with `Retry-After`.
-- **Logs:** structured, content-free events only. Long free-text values are
-  defensively truncated.
-- Client-side Firestore access is deny-by-default (`firestore.rules`); the
-  React app talks only to the API.
+### 2. Explainable matching
 
-## Cloud deployment (operator steps)
+Mentor fit is transparent rather than a popularity score:
 
-Step-by-step runbook with exact commands: **`docs/DEPLOY.md`**. Requires
-Google Cloud access; not runnable from this machine (no `gcloud` CLI
-installed). Summary:
+| Signal | Weight |
+|---|---:|
+| Topic relevance | 0.40 |
+| Domain overlap | 0.34 |
+| Goal / trait fit | 0.16 |
+| Shared language | 0.10 |
 
-1. Create/choose a project; set billing **budget alerts** before enabling
-   anything (alerts notify, they are not hard caps).
-2. Enable only what the current stage needs: Cloud Run, Cloud Build, Artifact
-   Registry, Firestore, Gemini API, Cloud Logging.
-3. Create the runtime service account with least privilege. Do not grant
-   Owner/Editor. No key files — Cloud Run uses the attached identity.
-4. Create Firestore (native mode) in the intended region.
-5. Seed the catalogue: `python -m app.seed` with production env vars.
-6. Deploy (verify current flags first):
+The matcher returns up to three candidates. Explanations are restricted to the public mentor card and the interpreted need. If the fit is too weak, the system can return `no_strong_match` rather than overstate confidence. The implementation uses weighted deterministic matching; Gemini re-ranking is an optional path whose source must be reported honestly.
 
-   ```bash
-   gcloud run deploy atlas \
-     --source . \
-     --region "$GOOGLE_CLOUD_LOCATION" \
-     --service-account "atlas-run@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
-     --set-env-vars "APP_MODE=production,GOOGLE_CLOUD_PROJECT=${GOOGLE_CLOUD_PROJECT},GOOGLE_CLOUD_LOCATION=${GOOGLE_CLOUD_LOCATION},GEMINI_MODEL=${GEMINI_MODEL},EMBED_MODEL=${EMBED_MODEL},EMBED_DIM=${EMBED_DIM}"
-   ```
+### 3. The Guardian
 
-7. After deploy: check the URL opens, `GET /healthz` returns `{ "ok": true }`,
-   demo routes are refused, and logs contain no user content.
-8. Rollback: promote the previous revision in the console.
+Every session message follows a defined pipeline:
 
-Scale-to-zero is the default (min instances 0) for credit-conscious
-development. A `Dockerfile`, `firestore.rules`, and `cloudbuild.yaml` are
-provided; `docs/DEPLOY.md` walks through build, deploy, and verification
-(including the no-auth `POST /api/guardian/try` check that proves the live
-model end to end).
+```text
+message
+  → deterministic PII scrub
+  → fast rule checks
+  → Gemini classifier when configured (otherwise labelled fallback)
+  → deterministic policy
+  → store scrubbed content and recipient-facing display text
+```
 
-## Known gaps (honest list)
+The Guardian looks for:
+- Direct promotion of a paid product or service
+- Requests to move a conversation off-platform or shared contact details
+- Urgency and fear-based pressure
+- Soft steering toward a paid provider
+- Affiliate and referral behaviour
 
-- **Live Gemini now runs and is verified** (2026-10-18): `check_gemini.py`
-  returned `RESULT: gemini` and `POST /api/guardian/try` answered with
-  `source: "gemini"` through the app itself. The first live run exposed a real
-  bug in the never-exercised path — `genai.Client` was missing the required
-  `vertexai=True` — which is fixed. The deterministic fallback remains the
-  safety net: any failed/absent model call falls back honestly, and results
-  still carry their true `source` label.
-- **The React SPA has no Firebase anonymous-auth integration yet.** It signs
-  in only through the demo route (`/api/dev/demo-login`), which production
-  mode does not register. On an `APP_MODE=production` deploy the public
-  surfaces work from the browser, but submitting a need / using sessions
-  requires the client-side Firebase integration (a code task) or a
-  `demo`-mode deployment. `docs/DEPLOY.md` §6 spells this out.
-- **Cloud deployment is prepared but not executed** from this machine (no
-  `gcloud`/Docker). `scripts/check_gemini.py` reports the real configuration
-  state (exit 2 when unconfigured) and never fakes a call.
-- **The evaluation gold set's 80 labels are machine-generated and all marked
-  `unreviewed`.** Until a human reviews ≥30 of them (spec §12), the
-  precision/recall/F1 on the Metrics page describe the current deterministic
-  behaviour, **not** proven accuracy. The page states this outright.
-- **The Guardian's rules cover English + Spanish phrase sets** plus
-  language-agnostic contact regexes; a live Gemini classifier would widen this.
-  Stated rather than hidden.
-- **A3 nuance:** the mentor's reveal-consent is simulated (mentors don't
-  authenticate in this prototype), and the mentor-impact + metrics routes sit
-  behind `/api/dev/...` because there is no mentor auth to scope a production
-  route to.
-- **FirestoreStore, Firebase verification, and the multi-stage Dockerfile** are
-  implemented but lazy and unexercised here for lack of credentials/Docker.
-- **Discovery is a frozen add-on** (88 entries, 151 relationships). It works
-  end-to-end but is deliberately not the headline; no new discovery features are
-  planned while the advice core is the focus.
+The action policy is deliberately not delegated to the model:
+
+| Final severity | Action | Intended result |
+|---|---|---|
+| 0–1 | `ALLOW` | Deliver the message; log the decision category |
+| 2 | `WARN` | Deliver with a promotion warning |
+| 3 | `BLOCK_AND_REDACT` | Replace the recipient-facing message with a removal notice and apply a strike |
+
+Three strikes end a session in the documented policy. The classifier can be wrong; this is a safety layer, not a guarantee of perfect detection.
+
+### 4. Friend Test and follow-through
+
+For sessions involving a money decision, the Friend Test surfaces whether advice cautioned against spending, remained neutral, or pushed spending. After a session, the user receives an editable summary with key points, practical action items, caveats, and relevant catalogue items to explore. The system does not claim that feedback retrains Gemini; feedback updates application-level signals and records disagreements for human review.
+
+---
+
+## AI evaluation and evidence
+
+The offline Guardian evaluation uses `eval/gold_set.jsonl`, an 80-message corpus:
+
+- 40 clean messages, including 20 hard negatives that mention things such as courses or certifications without actually pitching.
+- 40 promotional messages across direct promotion, contact solicitation, urgency/fear, soft steering, and affiliate/referral categories.
+- A fixed development/test split to reduce tuning leakage.
+- Precision, recall, F1, per-category recall, hard-negative false-positive rate, and a confusion matrix.
+
+**Critical caveat:** the gold-set labels are machine-generated and still marked `unreviewed`. Until they receive the documented human review, these values describe current rule behaviour on that set; they must not be presented as validated real-world model accuracy. The live Guardian test and the offline rule evaluation are different kinds of evidence and should be reported separately.
+
+Recommended next evaluation work:
+1. Have reviewers independently label fresh, human-written clean and promotional messages.
+2. Freeze the test set before adjusting rules or prompts.
+3. Measure the live Gemini classifier and deterministic fallback separately.
+4. Report sample sizes, per-language coverage, false positives, false negatives, latency, and fallback rates.
+5. Keep failures and borderline cases visible rather than hiding them behind a single accuracy number.
+
+---
+
+## Privacy, safety, and responsible use
+
+- **Pseudonymous by design:** public cards use generated pseudonyms and limited role/domain bands. The prototype's mentor cards and mentor sessions are synthetic.
+- **PII scrubbing first:** free text is scrubbed before storage and before any model call. The deterministic scrubber reduces exposure but does not promise perfect identification of every name or sensitive detail.
+- **No direct browser-to-Firestore access:** the browser calls the API; backend authorization and ownership checks protect user records.
+- **No message text in logs:** structured logs record event types, IDs/counts where appropriate, categories, status, model outcome, and timing—not prompts or message content.
+- **Rate limiting:** API rate limits return `429` with `Retry-After` where applicable.
+- **Deletion:** the documented delete flow cascades across the caller's account, needs, sessions, messages, feedback, and saved/discovery records and reports deletion counts.
+- **Distress handling:** distress signals show a support note; UNSOLD is not a clinical, crisis, therapy, or professional-advice service.
+- **Reveal requires consent:** the designed reveal state machine requires both sides to consent. In this prototype, the mentor's side is simulated and explicitly labelled.
+
+Anonymity does not mean invisibility from all infrastructure metadata. Cloud operators and providers may process technical metadata such as IP addresses. Do not submit sensitive personal information to this prototype.
+
+See [`docs/PRIVACY_AND_SAFETY.md`](docs/PRIVACY_AND_SAFETY.md) for the operative details.
+
+---
+
+## Current status and limitations
+
+### Implemented and documented
+
+- Advice front door and structured need intake
+- 35 synthetic mentor cards and 10 sample situations
+- Transparent mentor-fit scoring and grounded explanations
+- Session flow, Guardian screening, Friend Test, and labelled mentor simulation
+- Consent-state flow for reveal, editable session summary, next steps, and feedback
+- 80-message offline Guardian evaluation harness
+- Trust page with anonymous Guardian playground and public aggregate statistics
+- Procedural neural-network animation behind the home hero (canvas, no extra dependencies, static frame under `prefers-reduced-motion`)
+- Supporting Explore catalogue with 88 sample entries and 151 explicit relationships
+- Local live Gemini connectivity check: **verified on 18 October 2026** using the project's structured Guardian call
+
+### Not yet production-complete
+
+- **Cloud Run:** deployment has not yet been verified end to end. The deployment runbook and Cloud Build configuration are present, but a successful local Gemini request is not proof of a working deployed service.
+- **Firebase browser sign-in:** production token verification exists in the backend, but the React client still needs the Firebase anonymous-auth integration for authenticated production flows.
+- **Real mentors:** real volunteer onboarding, mentor verification, authenticated mentor participation, and real two-sided consent are not implemented; mentor-side actions are simulated.
+- **Evaluation labels:** all 80 gold-set labels remain unreviewed; reported values are not validated accuracy claims.
+- **Cloud data persistence:** Firestore support exists, but configure and verify it in the target project before claiming production persistence. Demo mode uses an in-memory store and must be treated as prototype data.
+- **Optional Google integrations:** DLP-based extra redaction, App Check, BigQuery/Looker Studio analytics, a staffed trust-and-safety review console, and a multi-agent ADK matcher remain planned rather than core completed functionality.
+- **Not professional advice:** UNSOLD is not therapy, crisis support, medical/legal/financial advice, recruitment, or a paid coaching marketplace.
+
+The prototype is designed to demonstrate the product's central idea and technical approach; it is not a claim that a live, verified volunteer network already exists.
+
+---
+
+## Deploying to Google Cloud
+
+The target deployment is a single **Google Cloud Run** service serving the built React app and FastAPI API. Gemini calls run through Vertex AI using the Cloud Run runtime identity. Firestore is the planned persistent store for the configured cloud path.
+
+**Use [`docs/DEPLOY.md`](docs/DEPLOY.md) as the canonical deployment runbook.** It defines the one-time resources, least-privilege runtime service account, Firestore database, Artifact Registry, first revision with no traffic, verification, promotion, rollback, and troubleshooting.
+
+Before deploying:
+
+1. Confirm the target Google Cloud project has billing enabled and create a budget alert.
+2. Verify that the selected model IDs and location are currently available.
+3. Enable the APIs required by the runbook.
+4. Create the dedicated runtime service account with least-privilege roles—do not grant broad Owner/Editor access.
+5. Run `scripts/check_gemini.py` locally and confirm `RESULT: gemini`.
+6. Keep all secrets and `.env` values out of the repository.
+
+The repository's Cloud Build configuration intentionally requires explicit model substitutions. After completing the one-time setup in `docs/DEPLOY.md`, the documented submission pattern is:
+
+```bash
+gcloud builds submit --config cloudbuild.yaml . \
+  --substitutions=_GEMINI_MODEL=gemini-3.5-flash-lite,_EMBED_MODEL=gemini-embedding-001,_EMBED_DIM=768,_APP_MODE=demo
+```
+
+Use the substitutions and region expected by the actual `cloudbuild.yaml` and runbook in the checked-out repository. The example chooses `demo` mode for a clearly labelled, synthetic-data prototype. Demo mode is not a production identity/persistence configuration. Review the runbook's verification steps before sending traffic to a new revision.
+
+After deployment, test `/healthz`, the public Guardian playground, representative clean and promotional inputs, browser behaviour, Cloud Run logs, and the source labels returned by the live path. Do not claim the deployment works until these checks have passed against the deployed URL.
+
+---
+
+## Google Cloud AI Builder Cup alignment
+
+UNSOLD's proposed alignment is **Sustainability & Social Impact**: it targets access to useful guidance regardless of budget and attempts to reduce exposure to predatory upselling. The official theme and the category selected in the submission dashboard must match; the team should make that selection explicitly rather than assume this README sets it.
+
+The event's published requirements call for a functional prototype deployed on Google Cloud using Google AI (for example, Gemini/Gemma) or an eligible agent platform. The official terms additionally list a live URL, public GitHub repository, a proposal/architecture deck, and a public video demonstration. All submission materials must be in English.
+
+Official links:
+- [AI Builder Cup overview and timeline](https://aibuildercup.com/)
+- [Themes, requirements, and judging criteria](https://aibuildercup.com/themes.html)
+- [Official Terms & Conditions](https://docs.google.com/document/d/e/2PACX-1vRm7ChZ6Ij9fG7uFDkxzUMpwgVeBmnQ6cMDnAIEEX84AiLBOOQ9cYbl3S5OzFBbcVb8TF55s-eVpiXb/pub)
+
+The currently published page lists **18 October 2026** as the prototype deadline; check the team dashboard for its precise cutoff and any updated instructions. The public theme page says a 3-minute video while the terms specify 3–4 minutes—follow the live submission form/dashboard if it resolves that discrepancy. The terms also require fresh work produced within the official hackathon timeline and prohibit use of third-party materials without sufficient rights; the team is responsible for ensuring its submission complies.
+
+The published judging weights are:
+- **Technical Merit & Gen AI Implementation — 40%**
+- **Problem Alignment & Impact — 25%**
+- **Innovation & Creativity — 25%**
+- **User Experience & Solution Design — 10%**
+
+The product should stand on its working flow, traceable AI use, privacy design, clear limitations, and measured evidence—not on claims that are not yet verified.
+
+---
+
+## Project documentation
+
+- [`docs/PROJECT_EXPLAINED.md`](docs/PROJECT_EXPLAINED.md) — full product walkthrough
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — code structure, data model, and request flow
+- [`docs/PRIVACY_AND_SAFETY.md`](docs/PRIVACY_AND_SAFETY.md) — privacy, retention, deletion, and safety limitations
+- [`docs/AI_EVALUATION.md`](docs/AI_EVALUATION.md) — evaluation method and caveats
+- [`docs/CONFIGURE_AI.md`](docs/CONFIGURE_AI.md) — configure and test Gemini locally
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — Google Cloud deployment runbook
+- [`docs/DECISIONS.md`](docs/DECISIONS.md) — key architectural/product decisions and history
+
+## A final principle
+
+**UNSOLD does not ask users to trust AI blindly. It shows how the system interpreted their need, explains why it surfaced a match, applies explicit rules to promotion risks, and is honest when a model or safeguard falls back.**
+
+That is the product promise: useful guidance without an agenda—and a system designed to make its own behaviour inspectable.
