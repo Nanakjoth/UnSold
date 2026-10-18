@@ -38,8 +38,7 @@ steps:
       - '--set-env-vars=APP_MODE=${_APP_MODE},GOOGLE_CLOUD_PROJECT=$PROJECT_ID,GOOGLE_CLOUD_LOCATION=${_AI_LOCATION},GEMINI_MODEL=${_GEMINI_MODEL},GEMINI_MODEL_STRONG=${_GEMINI_MODEL_STRONG},EMBED_MODEL=${_EMBED_MODEL},EMBED_DIM=${_EMBED_DIM}'
       - '--allow-unauthenticated'
       - '--min-instances=0'
-      - '--no-traffic'
-      - '--tag=verify'
+    
     # ^ First deploy runs with no traffic: promote a revision after verifying
     #   (docs/DEPLOY.md §5). Remove --no-traffic once verification passes.
 
@@ -50,7 +49,9 @@ substitutions:
   _REPO: atlas
   _APP_MODE: demo
   _AI_LOCATION: global
+  _GEMINI_MODEL: gemini-3.5-flash-lite
   _GEMINI_MODEL_STRONG: ''
-
+  _EMBED_MODEL: gemini-embedding-001
+  _EMBED_DIM: '768'
 options:
   logging: CLOUD_LOGGING_ONLY
